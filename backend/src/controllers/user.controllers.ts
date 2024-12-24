@@ -1,25 +1,25 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-const bcrypt = require("bcrypt");
-const { PrismaClient } = require("@prisma/client");
+import bcrypt from "bcrypt";
+import { User } from "../db/db";
+import { DecodedToken } from "../types/types";
+//const { PrismaClient } = require("@prisma/client");
 import { ApiResponse } from "../utils/ApiResponse";
 import { CookieOptions } from "express";
 //import { access } from "fs";
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const prisma = new PrismaClient();
-const User = prisma.user;
-
-const generateToken = async (data: any) => {
-  return jwt.sign(data, "secret", { expiresIn: "15m" });
+const generateToken = async (data: any, time: string, secret: string) => {
+  if (JWT_SECRET) return jwt.sign(data, secret, { expiresIn: time });
+  return null;
 };
 
 const register = asyncHandler(async (req: Request, res: Response) => {
-  //console.log("hit");
+  ////console.log("hit");
   const { username, email, password } = req.body;
   //basic validation
-  //console.log(username,email,password)
+  ////console.log(username,email,password)
   if (!email?.trim() || !username?.trim() || !password?.trim()) {
     res.status(400).json(new ApiResponse(400, "Please send all the data"));
     return;
@@ -39,16 +39,13 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   //if use is already made then redirect  to login
   const existingUser = await User.findFirst({
     where: {
-      OR: [
-        { email: "utkarshkaundal1970@gmail.com" },
-        { username: "utkarsh" },
-      ],
+      OR: [{ email }, { username }],
     },
   });
   if (existingUser) {
     res
-      .status(400)
-      .json(new ApiResponse(400, "User already exists please login"));
+      .status(201)
+      .json(new ApiResponse(201, "User already exists please login"));
     return;
   }
 
@@ -62,6 +59,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
       password: hashedPassword,
     },
   });
+
   if (!newUser) {
     res.status(400).json(new ApiResponse(500, "User could not be registered"));
     return;
@@ -71,21 +69,19 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const login = asyncHandler(async (req: Request, res: Response) => {
-  //console.log("hit")
+  ////console.log("hit")
   const { identifier, password } = req.body;
   //basic validation
-  if (!password?.trim()  || !identifier?.trim() ) {
+  if (!password?.trim() || !identifier?.trim()) {
     res
       .status(401)
       .json(new ApiResponse(401, "Please provide valid credentials"));
     return;
   }
+
   const user = await User.findFirst({
     where: {
-      OR: [
-        { email: "utkarshkaundal1970@gmail.com" },
-        { username: "utkarsh" },
-      ],
+      OR: [{ email: identifier }, { username: identifier }],
     },
   });
 
@@ -102,15 +98,39 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const accessToken = generateToken({
-    email: user.email,
-    username: user.username,
-  });
-  const refreshToken = generateToken({
-    email: user.email,
-    username: user.username,
+  const accessToken = await generateToken(
+    {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    },
+    process.env.ACCESS_TOKEN_EXPIRY as string,
+    process.env.JWT_SECRET as string
+  );
+
+  const refreshToken = await generateToken(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    process.env.REFRESH_TOKEN_EXPIRY as string,
+    process.env.REFRESH_TOKEN_SECRET as string
+  );
+  if (!accessToken || !refreshToken) {
+    res.status(500).json(new ApiResponse(500, "Server Error occured"));
+    return;
+  }
+
+  await User.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      refreshToken: refreshToken.toString(),
+    },
   });
 
+  //console.log(accessToken, "\n........\n", refreshToken);
   const options: CookieOptions = {
     httpOnly: true,
     secure: true,
@@ -125,4 +145,57 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   return;
 });
 
-export { register, login };
+const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const incomingRefreshToken =
+    req.body.refreshToken || req.cookies.refreshToken;
+  if (!incomingRefreshToken) {
+    res.status(404).json(new ApiResponse(404, "Refresh Token Not Found"));
+    return;
+  }
+
+  const decodedToken = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET as string
+  ) as DecodedToken;
+  //console.log("decoded token", decodedToken);
+  const user = await User.findUnique({
+    where: {
+      id: decodedToken?.id,
+    },
+  });
+
+  if (!user) {
+    res.status(401).json(new ApiResponse(401, "Token Expired"));
+    return;
+  }
+
+  if (incomingRefreshToken != user?.refreshToken) {
+    res.status(404).json(new ApiResponse(404, "Invalid Refresh Token"));
+    return;
+  }
+
+  const accessToken = await generateToken(
+    { id: user?.id, email: user.email, username: user.username },
+    process.env.ACCESS_TOKEN_EXPIRY as string,
+    process.env.JWT_SECRET as string
+  );
+  const refreshToken = await generateToken(
+    { id: user?.id, email: user.email },
+    process.env.REFRESH_TOKEN_EXPIRY as string,
+    process.env.REFRESH_TOKEN_SECRET as string
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, "Access token refreshed"));
+  return;
+});
+
+export { register, login, refresh };
