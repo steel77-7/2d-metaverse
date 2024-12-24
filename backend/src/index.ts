@@ -18,7 +18,7 @@ app.get("/", (req, res) => {
   res.send("hello world");
 });
 
-app.use("/api/v1/user", userRoutes);
+app.use("/api/v1", userRoutes);
 app.listen(PORT, () => {
   console.log("listening at port: ", PORT);
 });
