@@ -44,8 +44,8 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   });
   if (existingUser) {
     res
-      .status(201)
-      .json(new ApiResponse(201, "User already exists please login"));
+      .status(400)
+      .json(new ApiResponse(400, "User already exists please login"));
     return;
   }
 
@@ -61,10 +61,10 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!newUser) {
-    res.status(400).json(new ApiResponse(500, "User could not be registered"));
+    res.status(400).json(new ApiResponse(400, "User could not be registered"));
     return;
   }
-  res.status(200).json(new ApiResponse(200, "User registered"));
+  res.status(201).json(new ApiResponse(201, "User registered"));
   return;
 });
 
