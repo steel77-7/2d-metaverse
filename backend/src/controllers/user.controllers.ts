@@ -6,6 +6,7 @@ import { User } from "../db/db";
 import { DecodedToken } from "../types/types";
 //const { PrismaClient } = require("@prisma/client");
 import { ApiResponse } from "../utils/ApiResponse";
+import { ApiResponseType } from "../types/types";
 import { CookieOptions } from "express";
 //import { access } from "fs";
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -22,20 +23,14 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     //basic validation
     //console.log(username,email,password)
     if (!email?.trim() || !username?.trim() || !password?.trim()) {
-      res.status(400).json(new ApiResponse(400, "Please send all the data"));
-      return;
+      throw new ApiResponse(400, "Please enter all the fields");
     }
 
     if (password.length < 8) {
-      res
-        .status(400)
-        .json(
-          new ApiResponse(
-            400,
-            "Passwords Length should be more than 8 characters"
-          )
-        );
-      return;
+      throw new ApiResponse(
+        400,
+        "Passwords Length should be more than 8 characters"
+      );
     }
     //if use is already made then redirect  to login
     const existingUser = await User.findFirst({
@@ -44,10 +39,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
       },
     });
     if (existingUser) {
-      res
-        .status(400)
-        .json(new ApiResponse(400, "User already exists please login"));
-      return;
+      throw new ApiResponse(400, "User already exists please login");
     }
 
     //hash the password
@@ -62,15 +54,14 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!newUser) {
-      res
-        .status(400)
-        .json(new ApiResponse(400, "User could not be registered"));
+      throw new ApiResponse(400, "User already exists please login");
       return;
     }
     res.status(201).json(new ApiResponse(201, "User registered"));
     return;
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    return;
   }
 });
 
@@ -80,10 +71,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     const { identifier, password } = req.body;
     //basic validation
     if (!password?.trim() || !identifier?.trim()) {
-      res
-        .status(400)
-        .json(new ApiResponse(400, "Please provide valid credentials"));
-      return;
+      throw new ApiResponse(400, "Enter all the credentials");
     }
 
     const user = await User.findFirst({
@@ -94,15 +82,11 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 
     //if not of user then return not found
     if (!user) {
-      res.status(400).json(new ApiResponse(400, "Account not registered"));
-      return;
+      throw new ApiResponse(400, "User not found please signup");
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res
-        .status(400)
-        .json(new ApiResponse(400, "Wrong credentials or user does not exist"));
-      return;
+      throw new ApiResponse(400, "credentials are wrong");
     }
 
     const accessToken = await generateToken(
@@ -124,8 +108,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       process.env.REFRESH_TOKEN_SECRET as string
     );
     if (!accessToken || !refreshToken) {
-      res.status(500).json(new ApiResponse(500, "Server Error occured"));
-      return;
+      throw new ApiResponse(400, "token not found");
     }
 
     await User.update({
@@ -157,8 +140,9 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       })
     );
     return;
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    return;
   }
 });
 
@@ -183,13 +167,11 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      res.status(401).json(new ApiResponse(401, "Token Expired"));
-      return;
+      throw new ApiResponse(400, "User not found");
     }
 
     if (incomingRefreshToken != user?.refreshToken) {
-      res.status(404).json(new ApiResponse(404, "Invalid Refresh Token"));
-      return;
+      throw new ApiResponse(404, "Refresh token failed to generate ");
     }
 
     const accessToken = await generateToken(
@@ -221,8 +203,9 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
       })
     );
     return;
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    return;
   }
 });
 

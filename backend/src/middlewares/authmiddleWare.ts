@@ -26,7 +26,6 @@ export const authenicator = asyncHandler(
 
 
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET as string)as DecodedToken;
-
       const user = await User.findUnique({
         where: {
           id: decodedToken.id,
@@ -45,7 +44,7 @@ export const authenicator = asyncHandler(
       req.user = user;
       next();
     } catch (error) {
-      res.status(401).json(new ApiResponse(401, "Invalid access token"));
+      res.status(403).json(new ApiResponse(403, "Invalid access token"));
       return;
     }
   }
