@@ -1,11 +1,14 @@
 import { Router } from "express";
-import { createElement } from "../controllers/admin.controllers";
-import { createMap } from "../controllers/admin.controllers";
-import { adminAuthenticator } from "../middlewares/adminMiddleware";
+import { createElement, updateImageOfElement } from "../controllers/admin.controllers";
+import { authenicator } from "../middlewares/authmiddleWare";
+// import { createMap } from "../controllers/admin.controllers";
+// import { adminAuthenticator } from "../middlewares/adminMiddleware";
 
 const router = Router();
 
-router.post(`/element`,adminAuthenticator,createElement);
-router.post(`/map`,adminAuthenticator,createMap);
+router.route(`/element`).post(authenicator,createElement);
+router.route(`/element/:elementId`).put(authenicator,updateImageOfElement);
+// router.post(`/map`,adminAuthenticator,createMap);
+
 
 export default router;

@@ -57,7 +57,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     if (!newUser) {
       throw new ApiResponse(400,null, "User can't be created");
     }
-    res.status(201).json(new ApiResponse(201,null, "User registered"));
+    res.status(201).json(new ApiResponse(201,{id:newUser.id}, "User registered"));
     return;
   } catch (error: any) {
     res.status(error.status ?? 500).json(new ApiResponse(error.status ?? 500 ,null, error.message??"Internal Server Error"));
@@ -135,6 +135,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   return; */
     res.status(200).json(
       new ApiResponse(200, {
+        id:user.id,
         token:accessToken,
         refreshToken,
       },"Logged In")

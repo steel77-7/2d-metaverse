@@ -20,12 +20,11 @@ export const authenicator = asyncHandler(
         req.header("Authorization")?.replace("Bearer ", "");
         console.log("token::",token)
       if (!token) {
-        res.status(401).json(new ApiResponse(401,null, "Unauthorized Access"));
+        res.status(403).json(new ApiResponse(403,null, "Unauthorized Access"));
         return;
       }
 
-
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET as string)as DecodedToken;
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedToken;
       const user = await User.findUnique({
         where: {
           id: decodedToken.id,
@@ -36,7 +35,7 @@ export const authenicator = asyncHandler(
         },
       });
       if (!user) {
-        res.status(401).json(new ApiResponse(401,null, "User not found"));
+        res.status(403).json(new ApiResponse(403,null, "User not found"));
         return;
       }
 
