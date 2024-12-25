@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { getAvatarInfo, setAvatar } from "../controllers/user.controllers";
+import { getAvatarInfo,setAvatar } from "../controllers/user.controllers";
 import { authenicator } from "../middlewares/authmiddleWare";
 
 const router = Router(); 
