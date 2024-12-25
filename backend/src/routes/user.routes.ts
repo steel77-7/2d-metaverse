@@ -7,7 +7,7 @@ function ok(){
     console.log("hello")
 } 
 router.route("/signup").post(register);
-router.route("/login").post(login);
+router.route("/signin").post(login);
 router.route("/protected").get(authenicator,ok);
 router.route("/refresh-token").get(refresh);
 

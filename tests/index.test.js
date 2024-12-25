@@ -5,7 +5,7 @@ const BACKEND_URL = "http://localhost:5001";
 const axios = {
   post: async (...args) => {
     try {
-      const res = axios2.post(...args);
+      const res = await axios2.post(...args);
       return res;
     } catch (error) {
       return error.response;
@@ -43,7 +43,7 @@ const password = "123456@rahul2312312";
 
 describe("Auth", () => {
   test("User is able to signup only once", async () => {
-    const response = await axios.post(`http://localhost:5001/api/v1/signup`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
       email,
       password,
@@ -57,47 +57,46 @@ describe("Auth", () => {
     expect(response2.status).toBe(400);
   });
   test("Signup request fails if username or email turns to be empty", async () => {
-    const response = axios.post(`${BACKEND_URL}/api/v1/signup`, {
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username: "",
       email,
       password,
     });
     expect(response.status).toBe(400);
-    const response2 = axios.post(`${BACKEND_URL}/api/v1/signup`, {
+    const response2 = await axios.post(`${BACKEND_URL}/api/v1/signup`, {
       username,
-      email,
+      email:"",
       password,
     });
     expect(response2.status).toBe(400);
   });
   test("Sign in should be done if credentials (username or email) are correct", async () => {
-    const response = axios.post(`${BACKEND_URL}/api/v1/signin`, {
-      email,
+    const response = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+      identifier:email,
       password,
     });
     expect(response.status).toBe(200);
-    const response2 = axios.post(`${BACKEND_URL}/api/v1/signin`, {
-      username,
+    const response2 = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+      identifier:username,
       password,
     });
     expect(response2.status).toBe(200);
   });
   test("Sign In should not be done if password is incorrect", async () => {
-    const response3 = axios.post(`${BACKEND_URL}/api/v1/signin`, {
-      username,
+    const response3 = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+      identifier:username,
       password: "wrongpassword",
     });
     expect(response3.status).toBe(400);
-    const response4 = axios.post(`${BACKEND_URL}/api/v1/signin`, {
-      email,
+    const response4 = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+      identifier:email,
       password: "wrongpassword",
     });
     expect(response4.status).toBe(400);
   });
   test("Sign In should not be done if email and username both are empty", async () => {
-    const response5 = axios.post(`${BACKEND_URL}/api/v1/signin`, {
-      username: "",
-      email: "",
+    const response5 = await axios.post(`${BACKEND_URL}/api/v1/signin`, {
+      identifier:"",
       password: "wrongpassword",
     });
     expect(response5.status).toBe(400);

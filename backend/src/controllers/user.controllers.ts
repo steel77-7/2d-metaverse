@@ -60,7 +60,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     res.status(201).json(new ApiResponse(201, "User registered"));
     return;
   } catch (error: any) {
-    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    res.status(error.status).json(new ApiResponse(error.status , error.data));
     return;
   }
 });
