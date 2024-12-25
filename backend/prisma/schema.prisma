@@ -14,9 +14,15 @@ model User {
     password     String
     refreshToken String  @default("")
     type         String  @default("user")
-    avatarId     Int
-    avatar       Avatar? @relation(fields: [avatarId], references: [id]) // Defines the foreign key
+    avatarId     Int?
+    avatar       Avatar? @relation(fields: [avatarId], references: [id], name: "UserAvatar")
+}
 
+model Avatar {
+    id       Int    @id @default(autoincrement())
+    imageUrl String
+    name     String
+    users    User[] @relation(name: "UserAvatar")
 }
 
 model Element {
@@ -25,13 +31,4 @@ model Element {
     width    Int     @default(1)
     height   Int     @default(1)
     static   Boolean @default(true)
-
-}
-
-model Avatar {
-    id       Int     @id @default(autoincrement())
-    imageUrl String
-    name     String
-    users    User[]  @relation("User") // Matches the relation defined in User
-
 }
