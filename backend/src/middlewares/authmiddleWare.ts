@@ -20,7 +20,7 @@ export const authenicator = asyncHandler(
         req.header("Authorization")?.replace("Bearer ", "");
         console.log("token::",token)
       if (!token) {
-        res.status(401).json(new ApiResponse(401, "Unauthorized Access"));
+        res.status(401).json(new ApiResponse(401,null, "Unauthorized Access"));
         return;
       }
 
@@ -37,14 +37,14 @@ export const authenicator = asyncHandler(
         },
       });
       if (!user) {
-        res.status(401).json(new ApiResponse(401, "User not found"));
+        res.status(401).json(new ApiResponse(401,null, "User not found"));
         return;
       }
 
       req.user = user;
       next();
     } catch (error) {
-      res.status(403).json(new ApiResponse(403, "Invalid access token"));
+      res.status(403).json(new ApiResponse(403,null, "Invalid access token"));
       return;
     }
   }

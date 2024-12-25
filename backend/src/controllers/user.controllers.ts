@@ -23,12 +23,12 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     //basic validation
     //console.log(username,email,password)
     if (!email?.trim() || !username?.trim() || !password?.trim()) {
-      throw new ApiResponse(400, "Please enter all the fields");
+      throw new ApiResponse(400, null,"Please enter all the fields");
     }
 
     if (password.length < 8) {
       throw new ApiResponse(
-        400,
+        400,null,
         "Passwords Length should be more than 8 characters"
       );
     }
@@ -39,7 +39,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
       },
     });
     if (existingUser) {
-      throw new ApiResponse(400, "User already exists please login");
+      throw new ApiResponse(400,null, "User already exists please login");
     }
 
     //hash the password
@@ -54,13 +54,13 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!newUser) {
-      throw new ApiResponse(400, "User already exists please login");
+      throw new ApiResponse(400,null, "User already exists please login");
       return;
     }
-    res.status(201).json(new ApiResponse(201, "User registered"));
+    res.status(201).json(new ApiResponse(201,null, "User registered"));
     return;
   } catch (error: any) {
-    res.status(error.status).json(new ApiResponse(error.status , error.data));
+    res.status(error.status ?? 500).json(new ApiResponse(error.status ?? 500 ,null, error.message??"Internal Server Error"));
     return;
   }
 });
@@ -71,7 +71,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     const { identifier, password } = req.body;
     //basic validation
     if (!password?.trim() || !identifier?.trim()) {
-      throw new ApiResponse(400, "Enter all the credentials");
+      throw new ApiResponse(400,null, "Enter all the credentials");
     }
 
     const user = await User.findFirst({
@@ -82,11 +82,11 @@ const login = asyncHandler(async (req: Request, res: Response) => {
 
     //if not of user then return not found
     if (!user) {
-      throw new ApiResponse(400, "User not found please signup");
+      throw new ApiResponse(400,null, "User not found please signup");
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new ApiResponse(400, "credentials are wrong");
+      throw new ApiResponse(400,null, "credentials are wrong");
     }
 
     const accessToken = await generateToken(
@@ -108,7 +108,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       process.env.REFRESH_TOKEN_SECRET as string
     );
     if (!accessToken || !refreshToken) {
-      throw new ApiResponse(400, "token not found");
+      throw new ApiResponse(400,null, "token not found");
     }
 
     await User.update({
@@ -131,17 +131,17 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json(new ApiResponse(200, "Logged in"));
+    .json(new ApiResponse(200,null, "Logged in"));
   return; */
     res.status(200).json(
       new ApiResponse(200, {
         accessToken,
         refreshToken,
-      })
+      },"Logged In")
     );
     return;
   } catch (error: any) {
-    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    res.status(error.status ?? 500).json(new ApiResponse(error.status ?? 500,null, error.message??"Internal Server Error"));
     return;
   }
 });
@@ -151,7 +151,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     const incomingRefreshToken =
       req.body.refreshToken || req.cookies.refreshToken;
     if (!incomingRefreshToken) {
-      res.status(404).json(new ApiResponse(404, "Refresh Token Not Found"));
+      res.status(404).json(new ApiResponse(404, null,"Refresh Token Not Found"));
       return;
     }
 
@@ -167,11 +167,11 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new ApiResponse(400, "User not found");
+      throw new ApiResponse(400,null, "User not found");
     }
 
     if (incomingRefreshToken != user?.refreshToken) {
-      throw new ApiResponse(404, "Refresh token failed to generate ");
+      throw new ApiResponse(404,null, "Refresh token failed to generate ");
     }
 
     const accessToken = await generateToken(
@@ -200,11 +200,11 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
       new ApiResponse(200, {
         accessToken,
         refreshToken,
-      })
+      },"Access token refreshed")
     );
     return;
   } catch (error: any) {
-    res.status(error.status).json(new ApiResponse(error.status, error.data));
+    res.status(error.status ?? 500).json(new ApiResponse(error.status ?? 500, null,error.message??"Internal Server Error"));
     return;
   }
 });
