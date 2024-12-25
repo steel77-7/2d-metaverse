@@ -1,12 +1,8 @@
-const { PrismaClient } = require('@prisma/client')
 
-const prisma = new PrismaClient()
-const User = prisma.user
-const Element = prisma.element
-export { 
-User,Element
-}
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+const Element = prisma.element;
+const User = prisma.user;
+const Avatar = prisma.avatar;
 
-
-
-
+export { User, Avatar ,Element};

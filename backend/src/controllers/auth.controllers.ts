@@ -1,56 +1,38 @@
-import { User } from "../db/db";
-import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import { Request, Response } from "express";
-import { Avatar } from "../db/db";
-const setAvatar = asyncHandler(async (req: Request, res: Response) => {
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import { User } from "../db/db";
+import { DecodedToken } from "../types/types";
+//const { PrismaClient } = require("@prisma/client");
+import { ApiResponse } from "../utils/ApiResponse";
+import { ApiResponseType } from "../types/types";
+import { CookieOptions } from "express";
+//import { access } from "fs";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+const generateToken = async (data: any, time: string, secret: string) => {
+  if (JWT_SECRET) return jwt.sign(data, secret, { expiresIn: time });
+  return null;
+};
+
+
+
+const register = asyncHandler(async (req: Request, res: Response) => {
   try {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     ////console.log("hit");
-    const { username, email, password,type="user" } = req.body;
+    const { username, email, password } = req.body;
     //basic validation
     //console.log(username,email,password)
     if (!email?.trim() || !username?.trim() || !password?.trim()) {
       throw new ApiResponse(400, null,"Please enter all the fields");
-=======
-=======
->>>>>>> Stashed changes
-    const { avatarId } = req.body;
-    const avatar = await Avatar.findUnique({ where: { id: avatarId } });
-    if (!avatar) {
-      throw new ApiResponse(400, null, "Avatar not Updated");
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     }
-    
 
-//updating new avatar field
-    await Avatar.update({
-        where:{id:avatarId},
-        data:{ 
-            users:{
-                connect:{id:req.user.id}
-            }
-        }
-    })
-    //avatar to be sent??
-    res.status(200).json(new ApiResponse(200, { avatar }, "Avatar Updated"));
-    return;
-  } catch (error: any) {
-    res
-      .status(error.status ?? 500)
-      .json(
-        new ApiResponse(
-          error.status ?? 500,
-          null,
-          error.message ?? "Internal Server Error"
-        )
+    if (password.length < 8) {
+      throw new ApiResponse(
+        400,null,
+        "Passwords Length should be more than 8 characters"
       );
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     }
     //if use is already made then redirect  to login
     const existingUser = await User.findFirst({
@@ -70,52 +52,76 @@ const setAvatar = asyncHandler(async (req: Request, res: Response) => {
         username,
         email,
         password: hashedPassword,
-        type
       },
     });
 
     if (!newUser) {
-      throw new ApiResponse(400,null, "User can't be created");
+      throw new ApiResponse(400,null, "User already exists please login");
+      return;
     }
-    res.status(201).json(new ApiResponse(201,{id:newUser.id}, "User registered"));
+    res.status(201).json(new ApiResponse(201,null, "User registered"));
     return;
   } catch (error: any) {
     res.status(error.status ?? 500).json(new ApiResponse(error.status ?? 500 ,null, error.message??"Internal Server Error"));
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     return;
   }
 });
 
+const login = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    ////console.log("hit")
+    const { identifier, password } = req.body;
+    //basic validation
+    if (!password?.trim() || !identifier?.trim()) {
+      throw new ApiResponse(400,null, "Enter all the credentials");
+    }
 
+    const user = await User.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
+    });
 
-const getAvatarInfo=asyncHandler(async(req:Request,res:Response)=>{
+    //if not of user then return not found
+    if (!user) {
+      throw new ApiResponse(400,null, "User not found please signup");
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new ApiResponse(400,null, "credentials are wrong");
+    }
 
+    const accessToken = await generateToken(
+      {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+      process.env.ACCESS_TOKEN_EXPIRY as string,
+      process.env.JWT_SECRET as string
+    );
 
-    try {
-        let userids = req.body;
-        userids = userids.slice(",")
-const avatars = await Avatar.find
+    const refreshToken = await generateToken(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      process.env.REFRESH_TOKEN_EXPIRY as string,
+      process.env.REFRESH_TOKEN_SECRET as string
+    );
+    if (!accessToken || !refreshToken) {
+      throw new ApiResponse(400,null, "token not found");
+    }
 
-    } catch (error: any) {
-        res
-          .status(error.status ?? 500)
-          .json(
-            new ApiResponse(
-              error.status ?? 500,
-              null,
-              error.message ?? "Internal Server Error"
-            )
-          );
-    
-        return;
-      }
-})
+    await User.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        refreshToken: refreshToken as String,
+      },
+    });
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     //console.log(accessToken, "\n........\n", refreshToken);
     /*   const options: CookieOptions = {
     httpOnly: true,
@@ -131,8 +137,7 @@ const avatars = await Avatar.find
   return; */
     res.status(200).json(
       new ApiResponse(200, {
-        id:user.id,
-        token:accessToken,
+        accessToken,
         refreshToken,
       },"Logged In")
     );
@@ -206,16 +211,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+
+
+
 export { register, login, refresh };
-=======
-export { 
-    setAvatar,
-    getAvatarInfo
-}
->>>>>>> Stashed changes
-=======
-export { 
-    setAvatar,
-    getAvatarInfo
-}
->>>>>>> Stashed changes

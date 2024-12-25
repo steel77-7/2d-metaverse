@@ -2,15 +2,28 @@ import express from "express";
 import { config } from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import userRoutes from "./routes/user.routes";
+
+
 import adminRoutes from "./routes/admin.routes"
+
+import userRoutes from "./routes/auth.routes";
+
 config();
+//adding user object to the req 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
 const app = express();
 const PORT = process.env.PORT;
 const corsOptions = {
   origin: `${process.env.FRONTEND_URL}`,
   credentials: true,
 };
+
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());

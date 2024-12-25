@@ -8,12 +8,15 @@ datasource db {
 }
 
 model User {
-    id           Int    @id @default(autoincrement())
-    username     String @unique
-    email        String @unique
+    id           Int     @id @default(autoincrement())
+    username     String  @unique
+    email        String  @unique
     password     String
-    refreshToken String @default("")
-    type         String @default("user")
+    refreshToken String  @default("")
+    type         String  @default("user")
+    avatarId     Int
+    avatar       Avatar? @relation(fields: [avatarId], references: [id]) // Defines the foreign key
+
 }
 
 model Element {
@@ -22,4 +25,13 @@ model Element {
     width    Int     @default(1)
     height   Int     @default(1)
     static   Boolean @default(true)
+
+}
+
+model Avatar {
+    id       Int     @id @default(autoincrement())
+    imageUrl String
+    name     String
+    users    User[]  @relation("User") // Matches the relation defined in User
+
 }

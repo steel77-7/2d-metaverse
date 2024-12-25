@@ -25,6 +25,8 @@ export const authenicator = asyncHandler(
       }
 
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedToken;
+      console.log(decodedToken)
+      
       const user = await User.findUnique({
         where: {
           id: decodedToken.id,
@@ -34,6 +36,8 @@ export const authenicator = asyncHandler(
           type:true
         },
       });
+      console.log('user:::',user)
+      console.log('user:::',user)
       if (!user) {
         res.status(403).json(new ApiResponse(403,null, "User not found"));
         return;
