@@ -19,7 +19,7 @@ const generateToken = async (data: any, time: string, secret: string) => {
 const register = asyncHandler(async (req: Request, res: Response) => {
   try {
     ////console.log("hit");
-    const { username, email, password } = req.body;
+    const { username, email, password,type="user" } = req.body;
     //basic validation
     //console.log(username,email,password)
     if (!email?.trim() || !username?.trim() || !password?.trim()) {
@@ -50,12 +50,12 @@ const register = asyncHandler(async (req: Request, res: Response) => {
         username,
         email,
         password: hashedPassword,
+        type
       },
     });
 
     if (!newUser) {
-      throw new ApiResponse(400,null, "User already exists please login");
-      return;
+      throw new ApiResponse(400,null, "User can't be created");
     }
     res.status(201).json(new ApiResponse(201,null, "User registered"));
     return;
@@ -135,7 +135,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   return; */
     res.status(200).json(
       new ApiResponse(200, {
-        accessToken,
+        token:accessToken,
         refreshToken,
       },"Logged In")
     );

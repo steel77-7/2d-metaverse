@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-export const authenicator = asyncHandler(
+export const adminAuthenticator = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const token =
@@ -29,14 +29,14 @@ export const authenicator = asyncHandler(
       const user = await User.findUnique({
         where: {
           id: decodedToken.id,
+          type:"admin"
         },
         select: {
           id: true,
-          type:true
         },
       });
       if (!user) {
-        res.status(401).json(new ApiResponse(401,null, "User not found"));
+        res.status(401).json(new ApiResponse(401,null, "Unauthorized"));
         return;
       }
 
