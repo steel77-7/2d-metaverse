@@ -47,17 +47,50 @@ const setAvatar = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-const getAvatars
+const getAvatars = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const avatars = await Avatar.findMany({
+      select: {
+        id: true,
+        imageUrl: true,
+        name: true,
+      },
+    });
+    if (!avatars || avatars.length == 0) {
+      throw new ApiResponse(400, null, "No avatars found");
+    }
+
+    res.status(200).json(new ApiResponse(200, null, "Avatars found "));
+  } catch (error: any) {
+    res
+      .status(error.status ?? 500)
+      .json(
+        new ApiResponse(
+          error.status ?? 500,
+          null,
+          error.message ?? "Internal Server Error"
+        )
+      );
+    return;
+  }
+});
 
 const getUserAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
   try {
-    let userids = req.body;
-    userids = userids.split(",");
-  
+    const useridStr = req.query.id as string;
+    let userids = useridStr
+      .slice(1, -1)
+      .split(",")
+      .map((e) => Number(e));
+
+    console.log(userids);
     const avatars = await User.findMany({
       where: {
         id: {
           in: userids,
+        },
+        avatar: {
+          isNot: null,
         },
       },
       select: {
@@ -70,11 +103,10 @@ const getUserAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
       },
     });
 
-
-    if(!avatars){ 
-      throw new ApiResponse(400, null, "No avatars found")
+    if (!avatars || avatars.length == 0) {
+      throw new ApiResponse(400, null, "No user avatars found");
     }
-    res.status(200).json(new ApiResponse(200,avatars,"Avatars found"))
+    res.status(200).json(new ApiResponse(200, avatars, "User avatars found"));
   } catch (error: any) {
     res
       .status(error.status ?? 500)
@@ -90,4 +122,4 @@ const getUserAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-export { setAvatar, getUserAvatarInfo };
+export { setAvatar, getUserAvatarInfo, getAvatars };

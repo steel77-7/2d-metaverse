@@ -6,8 +6,8 @@ import cookieParser from "cookie-parser";
 
 import adminRoutes from "./routes/admin.routes"
 
-import userRoutes from "./routes/auth.routes";
-
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes"
 config();
 //adding user object to the req 
 declare global {
@@ -32,8 +32,10 @@ app.get("/", (req, res) => {
   res.send("hello world");
 });
 
-app.use("/api/v1", userRoutes);
+app.use("/api/v1", authRoutes);
+app.use("/api/v1/user", userRoutes);
 app.use("/api/v2/admin", adminRoutes);
+
 
 
 app.listen(PORT, () => {
