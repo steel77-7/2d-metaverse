@@ -5,6 +5,7 @@ import { Element } from "../db/db";
 
 export const createElement = asyncHandler(async(req:Request,res:Response)=>{
     try {
+        console.log("here")
         // const {imageUrl,width,height,static} = req.body;
         if(req.user.type!=="admin"){
             throw new ApiResponse(401,null,"Unauthorized")

@@ -1,4 +1,3 @@
-
 import { ApiResponse } from "../utils/ApiResponse";
 import { User } from "../db/db";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -12,23 +11,28 @@ const setAvatar = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiResponse(400, null, "Avatar not Updated");
     }
 
+    await User.findFirst({
+      where: {
+        id: req.user.id,
+      },
+      data: {
+        avatarId,
+      },
+    });
 
-
-    
-
-//updating new avatar field
+    //updating new avatar field
     await Avatar.update({
-        where:{id:avatarId},
-        data:{ 
-            users:{
-                connect:{id:req.user.id}
-            }
-        }
-    })
+      where: { id: avatarId },
+      data: {
+        users: {
+          connect: { id: req.user.id },
+        },
+      },
+    });
+
     //avatar to be sent??
     res.status(200).json(new ApiResponse(200, { avatar }, "Avatar Updated"));
     return;
-    
   } catch (error: any) {
     res
       .status(error.status ?? 500)
@@ -43,17 +47,34 @@ const setAvatar = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-const getAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
+const getAvatars
+
+const getUserAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
   try {
     let userids = req.body;
-    userids = userids.slice(",");
-    const avatars = await Avatar.findMany({
-        where:{ 
-           user:{
-            in:userids
-           }
-        }
+    userids = userids.split(",");
+  
+    const avatars = await User.findMany({
+      where: {
+        id: {
+          in: userids,
+        },
+      },
+      select: {
+        id: true,
+        avatar: {
+          select: {
+            imageUrl: true,
+          },
+        },
+      },
     });
+
+
+    if(!avatars){ 
+      throw new ApiResponse(400, null, "No avatars found")
+    }
+    res.status(200).json(new ApiResponse(200,avatars,"Avatars found"))
   } catch (error: any) {
     res
       .status(error.status ?? 500)
@@ -69,12 +90,4 @@ const getAvatarInfo = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-
-
-
-
-
-
-
-
-export { setAvatar, getAvatarInfo }
+export { setAvatar, getUserAvatarInfo };

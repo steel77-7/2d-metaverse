@@ -6,14 +6,10 @@ import { User } from "../db/db";
 import { DecodedToken } from "../types/types";
 //const { PrismaClient } = require("@prisma/client");
 import { ApiResponse } from "../utils/ApiResponse";
-import { ApiResponseType } from "../types/types";
-import { CookieOptions } from "express";
 //import { access } from "fs";
-const JWT_SECRET = process.env.JWT_SECRET;
 
-const generateToken = async (data: any, time: string, secret: string) => {
-  if (JWT_SECRET) return jwt.sign(data, secret, { expiresIn: time });
-  return null;
+const generateToken =  (data: any, time: string, secret: string) => {
+   return jwt.sign(data, secret, { expiresIn: time });
 };
 
 
@@ -91,7 +87,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiResponse(400,null, "credentials are wrong");
     }
 
-    const accessToken = await generateToken(
+    const accessToken =  generateToken(
       {
         id: user.id,
         email: user.email,
@@ -101,7 +97,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       process.env.JWT_SECRET as string
     );
 
-    const refreshToken = await generateToken(
+    const refreshToken =  generateToken(
       {
         id: user.id,
         email: user.email,
@@ -137,7 +133,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   return; */
     res.status(200).json(
       new ApiResponse(200, {
-        accessToken,
+        token:accessToken,
         refreshToken,
       },"Logged In")
     );
@@ -176,12 +172,12 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiResponse(404,null, "Refresh token failed to generate ");
     }
 
-    const accessToken = await generateToken(
+    const accessToken =  generateToken(
       { id: user?.id, email: user.email, username: user.username },
       process.env.ACCESS_TOKEN_EXPIRY as string,
       process.env.JWT_SECRET as string
     );
-    const refreshToken = await generateToken(
+    const refreshToken =  generateToken(
       { id: user?.id, email: user.email },
       process.env.REFRESH_TOKEN_EXPIRY as string,
       process.env.REFRESH_TOKEN_SECRET as string
