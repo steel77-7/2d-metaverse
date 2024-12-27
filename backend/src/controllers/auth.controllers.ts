@@ -1,14 +1,15 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import { Request, Response } from "express";
+import { SignJWT } from 'jose';
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { User } from "../db/db";
 import { DecodedToken } from "../types/types";
 import { ApiResponse } from "../utils/ApiResponse";
 const hash = Number(process.env.HASH);
-const generateToken = (data: any, time: string, secret: string) => {
+/* const generateToken = (data: any, time: string, secret: string) => {
   return jwt.sign(data, secret, { expiresIn: time });
-};
+}; */
 
 const register = asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -38,10 +39,13 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     }
 
     //hash the password
-    const hashedPassword = await bcrypt.hash(password, hash );
+    const hashedPassword = await bcrypt.hash(password, hash);
     const newUser = await User.create({
       data: {
-      ...req.body
+        username: req.body.username,
+        password: hashedPassword,
+        type: req.body.type,
+        email: req.body.email,
       },
     });
 
@@ -49,8 +53,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiResponse(400, null, "User already exists please login");
     }
 
-
-    const accessToken = generateToken(
+    /*   const accessToken = generateToken(
       {
         id: newUser.id,
         type:newUser.type
@@ -70,11 +73,11 @@ const register = asyncHandler(async (req: Request, res: Response) => {
       token: accessToken,
       refreshToken
     },"User registered"));
-    
-   
+   */
 
-
-    //res.status(201).json(new ApiResponse(201, null, "User registered"));
+    res
+      .status(201)
+      .json(new ApiResponse(201, { id: newUser.id }, "User registered"));
     return;
   } catch (error: any) {
     res
@@ -90,11 +93,111 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+
+
+/* const login = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { identifier, password } = req.body;
+
+    // Basic validation
+    if (!password?.trim() || !identifier?.trim()) {
+      throw new ApiResponse(400, null, "Enter all the credentials");
+    }
+
+    // Find user based on identifier (email or username)
+    const user = await User.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
+    });
+
+    // If user not found, return an error
+    if (!user) {
+      throw new ApiResponse(400, null, "User not found, please signup");
+    }
+
+    // Validate password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new ApiResponse(400, null, "Credentials are wrong");
+    }
+
+    // Get secrets from environment variables
+    const jwtSecret = process.env.JWT_SECRET;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+
+    // Ensure secrets are available in the environment variables
+    if (!jwtSecret || !refreshTokenSecret) {
+      throw new ApiResponse(500, null, "JWT secret or refresh token secret is missing");
+    }
+
+    // Create tokens using jose
+    const now = Math.floor(Date.now() / 1000);
+    const expirationAccess = now + 60 * 30; // Access token expires in 30 minutes
+    const expirationRefresh = now + 60 * 60; // Refresh token expires in 1 hour
+
+    // Sign access token
+    const accessToken = await new SignJWT({
+      sub: user.id,
+      type: user.type,
+      iat: now,
+      exp: expirationAccess,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(new TextEncoder().encode(jwtSecret));
+
+    // Sign refresh token
+    const refreshToken = await new SignJWT({
+      sub: user.id,
+      iat: now,
+      exp: expirationRefresh,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(new TextEncoder().encode(refreshTokenSecret));
+
+    if (!accessToken || !refreshToken) {
+      throw new ApiResponse(400, null, "Tokens not generated");
+    }
+
+    // Store refresh token in the database
+    await User.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        refreshToken: refreshToken,
+      },
+    });
+
+    // Respond with the tokens
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          token: accessToken,
+          refreshToken,
+        },
+        "Logged In"
+      )
+    );
+    return;
+  } catch (error: any) {
+    res
+      .status(error.status ?? 500)
+      .json(
+        new ApiResponse(
+          error.status ?? 500,
+          null,
+          error.message ?? "Internal Server Error"
+        )
+      );
+    return;
+  }
+}); */
 const login = asyncHandler(async (req: Request, res: Response) => {
   try {
-    ////console.log("hit")
     const { identifier, password } = req.body;
-    //basic validation
+
     if (!password?.trim() || !identifier?.trim()) {
       throw new ApiResponse(400, null, "Enter all the credentials");
     }
@@ -105,33 +208,45 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       },
     });
 
-    //if not of user then return not found
     if (!user) {
-      throw new ApiResponse(400, null, "User not found please signup");
+      throw new ApiResponse(400, null, "User not found, please signup");
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new ApiResponse(400, null, "credentials are wrong");
+      throw new ApiResponse(400, null, "Credentials are wrong");
     }
 
-    const accessToken = generateToken(
-      {
-        id: user.id,
-        type:user.type
-      },
-      process.env.ACCESS_TOKEN_EXPIRY as string,
-      process.env.JWT_SECRET as string
-    );
+    const jwtSecret = process.env.JWT_SECRET;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 
-    const refreshToken = generateToken(
-      {
-        id: user.id,
-      },
-      process.env.REFRESH_TOKEN_EXPIRY as string,
-      process.env.REFRESH_TOKEN_SECRET as string
-    );
+    if (!jwtSecret || !refreshTokenSecret) {
+      throw new ApiResponse(500, null, "JWT secret or refresh token secret is missing");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const expirationAccess = now + 60 * 30;
+    const expirationRefresh = now + 60 * 60;
+
+    const accessToken = await new SignJWT({
+      id: user.id,
+      type: user.type,
+      iat: now,
+      exp: expirationAccess,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(Buffer.from(jwtSecret));
+
+    const refreshToken = await new SignJWT({
+      sub: user.id,
+      iat: now,
+      exp: expirationRefresh,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(Buffer.from(refreshTokenSecret));
+
     if (!accessToken || !refreshToken) {
-      throw new ApiResponse(400, null, "token not found");
+      throw new ApiResponse(400, null, "Tokens not generated");
     }
 
     await User.update({
@@ -139,7 +254,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
         id: user.id,
       },
       data: {
-        refreshToken: refreshToken as String,
+        refreshToken: refreshToken,
       },
     });
 
@@ -167,6 +282,8 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 });
+
+
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -198,7 +315,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
       throw new ApiResponse(404, null, "Refresh token failed to generate ");
     }
 
-    const accessToken = generateToken(
+    /*   const accessToken = generateToken(
       { id: user?.id, email: user.email, username: user.username },
       process.env.ACCESS_TOKEN_EXPIRY as string,
       process.env.JWT_SECRET as string
@@ -218,7 +335,7 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
         },
         "Access token refreshed"
       )
-    );
+    ); */
     return;
   } catch (error: any) {
     res

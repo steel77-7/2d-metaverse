@@ -47,6 +47,7 @@ const setAvatar = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+
 const getAvatars = asyncHandler(async (req: Request, res: Response) => {
   try {
     const avatars = await Avatar.findMany({

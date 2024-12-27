@@ -1,6 +1,5 @@
 export interface DecodedToken {
-    id: string,
-    type?:string
+  id: number, type?: string, iat?: number, exp?:number
   }
 
 
